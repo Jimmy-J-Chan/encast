@@ -1,0 +1,10 @@
+project:
+  name: encast
+  date: 2024-10-06
+  authors: Jimmy Chan
+
+seed: 888
+target:
+num_cols:
+cat_cols:
+cols2remove:
