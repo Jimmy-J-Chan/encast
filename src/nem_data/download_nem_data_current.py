@@ -128,7 +128,7 @@ def download_nem_current_hist(base_fn_save=None, update_metadata=False, save_met
 
 def download_nem_current_update(base_fn_save=None, update_metadata=False, save_metadata=False):
     fn_metadata = 'metadata_current.pkl'
-    fn_metadata_archive = f'metadata_current_{pd.Timestamp.today():%Y_%m_%d}'
+    fn_metadata_archive = f'metadata_current_{pd.Timestamp.today():%Y_%m_%d}.pkl'
     last_updated = pd.to_datetime(os.path.getmtime(fn_metadata), unit='s') - pd.offsets.Day(3)
     if not os.path.isfile(fn_metadata_archive):
         shutil.copy(fn_metadata, fn_metadata_archive)
