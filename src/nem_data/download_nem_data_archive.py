@@ -51,17 +51,11 @@ def get_metadata_archive(update=False, save=False):
     metadata_current_level_dirs = metadata_current_level.loc[metadata_current_level['file_size']=='<dir>']
     more_dirs = len(metadata_current_level_dirs)>0
 
-    # metadata = pd.read_pickle('metadata_current.pkl')
-    # current_page_level = 1
-    # metadata_current_level = metadata.loc[metadata['page_level'] == current_page_level]
-    # metadata_current_level_dirs = metadata_current_level.loc[metadata_current_level['file_size'] == '<dir>']
-    # more_dirs = len(metadata_current_level_dirs) > 0
     while more_dirs:
         current_page_level +=1
 
         # goto each dir - download zip or goto next dir down
         for ix, row in metadata_current_level_dirs.iterrows():
-            #time.sleep(1)
             url_path = row['url_path']
             dir_name = row['file_name']
             tmp_url = f"{base_url}/{url_path}"
@@ -118,8 +112,6 @@ def download_nem_archive(base_fn_save=None, update_metadata=False, save_metadata
             print(f"{ix}/{n_files-1} - downloaded file: {folder_path}/{file_name}", end=' - ')
             status_code = download_save_zip_file(tmp_url, tmp_fn_save)
             print('SUCCESS' if status_code==200 else 'FAILED')
-            if status_code!=200:
-                hold=0
         else:
             print(f"{ix}/{n_files-1} - file already downloaded: {folder_path}/{file_name}")
         pass
@@ -140,6 +132,6 @@ def download_nem_archive_update(base_fn_save=None, update_metadata=False, save_m
 
 if __name__ == '__main__':
     base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
-    #download_nem_archive_hist(base_fn_save, update_metadata=False, save_metadata=True)
+    #download_nem_archive_hist(base_fn_save, update_metadata=True, save_metadata=True)
     download_nem_archive_update(base_fn_save, update_metadata=True, save_metadata=True)
     pass
