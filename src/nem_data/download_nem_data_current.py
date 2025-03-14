@@ -96,30 +96,33 @@ def download_nem_current(base_fn_save=None, update_metadata=False, save_metadata
         file2dl = file2dl.loc[file2dl['update_datetime']>=last_updated].reset_index(drop=True)
 
     n_files = len(file2dl)
-    for ix, row in file2dl.iterrows():
-        url_path = row['url_path']
-        file_name = row['file_name']
+    if n_files>0:
+        for ix, row in file2dl.iterrows():
+            url_path = row['url_path']
+            file_name = row['file_name']
 
-        path_elements = [c for c in url_path.split('/')]
-        path_elements = [c for c in path_elements if len(c)>0]
-        path_elements = [c for c in path_elements if c!='Reports'][:-1]
-        folder_path = '/'.join(path_elements)
-        tmp_url = f"{base_url}/{url_path}"
-        tmp_fn_save = f"{base_fn_save}/{folder_path}/{file_name}"
+            path_elements = [c for c in url_path.split('/')]
+            path_elements = [c for c in path_elements if len(c)>0]
+            path_elements = [c for c in path_elements if c!='Reports'][:-1]
+            folder_path = '/'.join(path_elements)
+            tmp_url = f"{base_url}/{url_path}"
+            tmp_fn_save = f"{base_fn_save}/{folder_path}/{file_name}"
 
-        # check if we have d/l file already
-        if not os.path.isfile(tmp_fn_save):
-            # check we have folders for path elements else create
-            check_folders_exists(base_fn_save, folder_path)
+            # check if we have d/l file already
+            if not os.path.isfile(tmp_fn_save):
+                # check we have folders for path elements else create
+                check_folders_exists(base_fn_save, folder_path)
 
-            print(f"{ix}/{n_files} - downloaded file: {folder_path}/{file_name}", end=' - ')
-            status_code = download_save_zip_file(tmp_url, tmp_fn_save)
-            print('SUCCESS' if status_code==200 else 'FAILED')
-            if status_code!=200:
-                hold=0
-        else:
-            print(f"{ix}/{n_files} - file already downloaded: {folder_path}/{file_name}")
-        pass
+                print(f"{ix}/{n_files-1} - downloaded file: {folder_path}/{file_name}", end=' - ')
+                status_code = download_save_zip_file(tmp_url, tmp_fn_save)
+                print('SUCCESS' if status_code==200 else 'FAILED')
+                if status_code!=200:
+                    hold=0
+            else:
+                print(f"{ix}/{n_files-1} - file already downloaded: {folder_path}/{file_name}")
+            pass
+    else:
+        print('no files to download today')
     pass
 
 def download_nem_current_hist(base_fn_save=None, update_metadata=False, save_metadata=False):
@@ -138,6 +141,6 @@ def download_nem_current_update(base_fn_save=None, update_metadata=False, save_m
 if __name__ == '__main__':
     base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
     #download_nem_current_hist(base_fn_save, update_metadata=False, save_metadata=False)
-    download_nem_current_update(base_fn_save, update_metadata=True, save_metadata=True)
+    download_nem_current_update(base_fn_save, update_metadata=False, save_metadata=True)
 
     pass
