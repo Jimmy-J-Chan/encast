@@ -93,7 +93,7 @@ def download_nem_current(base_fn_save=None, update_metadata=False, save_metadata
     file2dl = metadata.loc[metadata['file_size']!='<dir>'].reset_index(drop=True)
     if last_updated is not None:
         file2dl['update_datetime'] = pd.to_datetime(file2dl['update_datetime'], format='%A, %B %d, %Y %I:%M %p')
-        file2dl = file2dl.loc[file2dl['update_datetime']>=last_updated]
+        file2dl = file2dl.loc[file2dl['update_datetime']>=last_updated].reset_index(drop=True)
 
     n_files = len(file2dl)
     for ix, row in file2dl.iterrows():
@@ -116,15 +116,10 @@ def download_nem_current(base_fn_save=None, update_metadata=False, save_metadata
             status_code = download_save_zip_file(tmp_url, tmp_fn_save)
             print('SUCCESS' if status_code==200 else 'FAILED')
             if status_code!=200:
-                hold==0
+                hold=0
         else:
             print(f"{ix}/{n_files} - file already downloaded: {folder_path}/{file_name}")
         pass
-
-
-    # url = r"https://nemweb.com.au/Reports/CURRENT/Adjusted_Prices_Reports/PUBLIC_PRICE_REVISION_DISPATCH_20250115142514_0000000447204323.zip"
-    # fn_save = r'C:\Users\Jimmy\Documents\NEM\CURRENT\test.zip'
-    # status_code = download_save_zip_file(url, fn_save)
     pass
 
 def download_nem_current_hist(base_fn_save=None, update_metadata=False, save_metadata=False):
@@ -132,14 +127,17 @@ def download_nem_current_hist(base_fn_save=None, update_metadata=False, save_met
     pass
 
 def download_nem_current_update(base_fn_save=None, update_metadata=False, save_metadata=False):
-    last_updated = pd.to_datetime(os.path.getmtime('metadata_current.pkl'), unit='s') - pd.offsets.Day(3)
-    shutil.copy('metadata_current.pkl', f'metadata_current_{pd.Timestamp.today():%Y_%m_%d}')
+    fn_metadata = 'metadata_current.pkl'
+    fn_metadata_archive = f'metadata_current_{pd.Timestamp.today():%Y_%m_%d}'
+    last_updated = pd.to_datetime(os.path.getmtime(fn_metadata), unit='s') - pd.offsets.Day(3)
+    if not os.path.isfile(fn_metadata_archive):
+        shutil.copy(fn_metadata, fn_metadata_archive)
     download_nem_current(base_fn_save, update_metadata, save_metadata, last_updated)
     pass
 
 if __name__ == '__main__':
     base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
-    download_nem_current_hist(base_fn_save, update_metadata=False, save_metadata=False)
-    #download_nem_current_update(base_fn_save, update_metadata=True, save_metadata=True)
+    #download_nem_current_hist(base_fn_save, update_metadata=False, save_metadata=False)
+    download_nem_current_update(base_fn_save, update_metadata=True, save_metadata=True)
 
     pass
