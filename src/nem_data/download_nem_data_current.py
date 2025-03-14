@@ -141,6 +141,6 @@ def download_nem_current_update(base_fn_save=None, update_metadata=False, save_m
 if __name__ == '__main__':
     base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
     #download_nem_current_hist(base_fn_save, update_metadata=False, save_metadata=False)
-    download_nem_current_update(base_fn_save, update_metadata=False, save_metadata=True)
+    download_nem_current_update(base_fn_save, update_metadata=True, save_metadata=True)
 
     pass
