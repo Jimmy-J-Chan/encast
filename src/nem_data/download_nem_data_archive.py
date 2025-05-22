@@ -124,7 +124,11 @@ def download_nem_archive_hist(base_fn_save=None, update_metadata=False, save_met
 def download_nem_archive_update(base_fn_save=None, update_metadata=False, save_metadata=False):
     fn_metadata = 'metadata_archive.pkl'
     fn_metadata_archive = f'metadata_archive_{pd.Timestamp.today():%Y_%m_%d}.pkl'
-    last_updated = pd.to_datetime(os.path.getmtime(fn_metadata), unit='s') - pd.offsets.Day(3)
+
+    fn_metadata_path = f"{base_fn_save}/metadata/archive/{fn_metadata}"
+    fn_metadata_archive_path = f"{base_fn_save}/metadata/archive/{fn_metadata}"
+
+    last_updated = pd.to_datetime(os.path.getmtime(fn_metadata_path), unit='s') - pd.offsets.Day(3)
     if not os.path.isfile(fn_metadata_archive):
         shutil.copy(fn_metadata, fn_metadata_archive)
     download_nem_archive(base_fn_save, update_metadata, save_metadata, last_updated)
