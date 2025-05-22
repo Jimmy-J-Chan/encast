@@ -10,3 +10,13 @@
 #/src/nem_data/metadata_current_*.pkl
 /src/nem_data/metadata_current_????_??_??.pkl
 /src/nem_data/metadata_archive_????_??_??.pkl
+
+/archive
+/build
+/dist
+/ETL
+/output/
+/templates
+buildexe_*.cmd
+*.spec
+
