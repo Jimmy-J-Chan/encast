@@ -3,13 +3,19 @@ import shutil
 from conf.config import *
 
 def get_dir_all_paths(dir_path=None):
-    # TODO: get all files paths given parent directory
+    file_paths = []
+    for dirpath, _, filenames in os.walk(dir_path):
+        for filename in filenames:
+            file_paths.append(os.path.join(dirpath, filename))
 
-    return file_paths
+    # remove parent path
+    str_cut = len(dir_path)+1
+    file_paths_cut = [c[str_cut:] for c in file_paths]
+    return file_paths_cut
 
 
 def replicate_metadata():
-    fn_dest_dir = r"U:\NEM
+    fn_dest_dir = r"U:\NEM"
     fn_src_dir = config.project.folder + '/src/nem_data'
 
     ## current
@@ -45,13 +51,19 @@ def replicate_metadata():
 
     pass
 
-def replicate_archive():
-    fn_src_dir = r"C:\Users\Jimmy\Documents\NEM\ARCHIVE"
-    fn_dest_dir = r"U:\NEM\ARCHIVE"
+def replicate_files(parent_folder=None):
+    fn_src_dir = r"C:\Users\Jimmy\Documents\NEM\{}"
+    fn_dest_dir = r"U:\NEM\{}"
 
-    folder_names_src = os.listdir(fn_src_dir)
-    # recursively
+    src_filepaths = get_dir_all_paths(fn_src_dir.format(parent_folder))
+    dest_filepaths = get_dir_all_paths(fn_dest_dir.format(parent_folder))
 
+    df = Struct()
+    df['src'] = src_filepaths
+    df['dest'] = dest_filepaths
+    df.to_pickle('filepaths.pkl')
+
+    tmpdiff = [c for c in src_filepaths if c not in dest_filepaths]
 
 
     # # get all file paths from src and dest
@@ -80,4 +92,4 @@ def pc2rdss():
 
 
 if __name__ == '__main__':
-    pc2rdss()
+    replicate_files('CURRENT')
