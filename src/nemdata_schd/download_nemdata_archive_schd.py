@@ -7,6 +7,7 @@ import os
 import shutil
 
 def download_save_zip_file(url=None, fn_save=None):
+    # download datafile
     response = requests.get(url)
 
     # Check if the request was successful (status code 200)
@@ -35,10 +36,10 @@ def get_page_level_metadata(url=None):
         assert len(timestamp_size)==len(href)
     return metadata
 
-def get_metadata_archive(update=False, save=False):
-    fn_save = 'metadata_archive.pkl'
+def get_metadata_archive(update=False, save=False, parent_path=None):
+    fn_save_path = f"{parent_path}/metadata/metadata_archive.pkl"
     if not update:
-        return pd.read_pickle(fn_save)
+        return pd.read_pickle(fn_save_path)
 
     # get links to zip files to download
     current_page_level = 0
@@ -74,24 +75,25 @@ def get_metadata_archive(update=False, save=False):
     metadata = metadata.reset_index(drop=True)
     if save:
         print('Saving metadata current')
-        metadata.to_pickle(fn_save)
+        metadata.to_pickle(fn_save_path)
     return metadata
 
 def check_folders_exists(base_fn_save, folder_path):
-    tmp_path = base_fn_save
-    tmp_path = f"{tmp_path}/{folder_path}"
+    tmp_path = f"{base_fn_save}/{folder_path}"
     if not os.path.isdir(tmp_path):
         os.makedirs(tmp_path)
     pass
 
 def download_nem_archive(base_fn_save=None, update_metadata=False, save_metadata=False, last_updated=None):
+    # update metadata
     base_url = r'https://nemweb.com.au'
-    metadata = get_metadata_archive(update=update_metadata, save=save_metadata)
+    metadata = get_metadata_archive(update=update_metadata, save=save_metadata, parent_path=base_fn_save)
     file2dl = metadata.loc[metadata['file_size']!='<dir>'].reset_index(drop=True)
     if last_updated is not None:
         file2dl['update_datetime'] = pd.to_datetime(file2dl['update_datetime'], format='%A, %B %d, %Y %I:%M %p')
         file2dl = file2dl.loc[file2dl['update_datetime']>=last_updated].reset_index(drop=True)
 
+    # update data
     n_files = len(file2dl)
     for ix, row in file2dl.iterrows():
         url_path = row['url_path']
@@ -113,7 +115,7 @@ def download_nem_archive(base_fn_save=None, update_metadata=False, save_metadata
             status_code = download_save_zip_file(tmp_url, tmp_fn_save)
             print('SUCCESS' if status_code==200 else 'FAILED')
         else:
-            print(f"{ix}/{n_files-1} - file already downloaded: {folder_path}/{file_name}")
+            print(f"{ix}/{n_files-1} - FILE ALREADY DOWNLOADED: {folder_path}/{file_name}")
         pass
     pass
 
@@ -122,20 +124,19 @@ def download_nem_archive_hist(base_fn_save=None, update_metadata=False, save_met
     pass
 
 def download_nem_archive_update(base_fn_save=None, update_metadata=False, save_metadata=False):
-    fn_metadata = 'metadata_archive.pkl'
-    fn_metadata_archive = f'metadata_archive_{pd.Timestamp.today():%Y_%m_%d}.pkl'
+    # archive metadata file
+    tmpsrc = f"{base_fn_save}/metadata/metadata_archive.pkl"
+    tmpdest = f"{base_fn_save}/metadata/ARCHIVE/metadata_archive_{pd.Timestamp.today():%Y_%m_%d}.pkl"
+    shutil.copy(tmpsrc, tmpdest)
 
-    # fn_metadata_path = f"{base_fn_save}/metadata/archive/{fn_metadata}"
-    # fn_metadata_archive_path = f"{base_fn_save}/metadata/archive/{fn_metadata}"
-
-    last_updated = pd.to_datetime(os.path.getmtime(fn_metadata), unit='s') - pd.offsets.Day(3)
-    if not os.path.isfile(fn_metadata_archive):
-        shutil.copy(fn_metadata, fn_metadata_archive)
-    download_nem_archive(base_fn_save, update_metadata, save_metadata, last_updated)
+    # update data
+    day_offsets = 3
+    last_updated_offset = pd.to_datetime(os.path.getmtime(tmpsrc), unit='s') - pd.offsets.Day(day_offsets)
+    download_nem_archive(base_fn_save, update_metadata, save_metadata, last_updated_offset)
     pass
 
 if __name__ == '__main__':
-    base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
-    #download_nem_archive_hist(base_fn_save, update_metadata=True, save_metadata=True)
+    #base_fn_save = r"C:\Users\Jimmy\Documents\NEM"
+    base_fn_save = r'C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\NEM'
     download_nem_archive_update(base_fn_save, update_metadata=True, save_metadata=True)
     pass
