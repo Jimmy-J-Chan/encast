@@ -21,3 +21,5 @@ buildexe_*.cmd
 *.spec
 
 /src/nemdata_schd/filepaths.pkl
+
+/secrets/
