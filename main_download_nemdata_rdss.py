@@ -3,8 +3,7 @@ from src.nemdata_schd.download_nemdata_current_schd import download_nem_current_
 from conf.config import *
 #from src.nem_data.dl_nem_data_sample import download_sample_file
 
-# setup logging
-log = setup_logger(__name__)
+log = setup_logger(__name__) # setup logging
 
 def download_nemdata(root_path=None):
     # root_path = r"C:\Users\Jimmy\Documents\NEM" if root_path is None else root_path
@@ -16,6 +15,6 @@ def download_nemdata(root_path=None):
 
 
 if __name__ == '__main__':
-    # root_path = r'U:\Research\Projects\sef\encast\NEM'
-    # download_nemdata(root_path)
+    root_path = r'U:\Research\Projects\sef\encast\NEM'
+    download_nemdata(root_path)
     pass

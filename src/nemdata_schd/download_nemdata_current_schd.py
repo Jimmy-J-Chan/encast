@@ -5,6 +5,7 @@ import bs4
 import time
 import os
 import shutil
+log = setup_logger(__name__) # setup logging
 
 def download_save_zip_file(url=None, fn_save=None):
     response = requests.get(url)
@@ -42,7 +43,7 @@ def get_metadata_current(update=False, save=False, parent_path=None):
     current_page_level = 0
     base_url = r'https://nemweb.com.au'
     url_l0 = r'https://nemweb.com.au/Reports/CURRENT/'
-    print(f'Level {current_page_level} - Getting page metadata')
+    log.debug(f'Level {current_page_level} - Getting page metadata')
     metadata = get_page_level_metadata(url_l0)
     metadata['page_level'] = current_page_level
     metadata_current_level = metadata.loc[metadata['page_level']==current_page_level]
@@ -57,7 +58,7 @@ def get_metadata_current(update=False, save=False, parent_path=None):
             url_path = row['url_path']
             dir_name = row['file_name']
             tmp_url = f"{base_url}/{url_path}"
-            print(f'Level {current_page_level} - Getting page metadata - {dir_name}')
+            log.debug(f'Level {current_page_level} - Getting page metadata - {dir_name}')
             tmp_metadata = get_page_level_metadata(tmp_url)
             tmp_metadata['parent_file_name'] = dir_name
             tmp_metadata['page_level'] = current_page_level
@@ -71,7 +72,7 @@ def get_metadata_current(update=False, save=False, parent_path=None):
 
     metadata = metadata.reset_index(drop=True)
     if save:
-        print('Saving metadata current')
+        log.debug('Saving metadata current')
         metadata.to_pickle(fn_save_path)
     return metadata
 def check_folders_exists(base_fn_save, folder_path):
@@ -109,14 +110,14 @@ def download_nem_current(base_fn_save=None, update_metadata=False, save_metadata
                 # check we have folders for path elements else create
                 check_folders_exists(base_fn_save, folder_path)
 
-                print(f"{ix}/{n_files-1} - downloaded file: {folder_path}/{file_name}", end=' - ')
+                log.debug(f"{ix}/{n_files-1} - downloaded file: {folder_path}/{file_name}", end=' - ')
                 status_code = download_save_zip_file(tmp_url, tmp_fn_save)
-                print('SUCCESS' if status_code==200 else 'FAILED')
+                log.debug('SUCCESS' if status_code==200 else 'FAILED')
             else:
-                print(f"{ix}/{n_files-1} - FILE ALREADY DOWNLOADED: {folder_path}/{file_name}")
+                log.debug(f"{ix}/{n_files-1} - FILE ALREADY DOWNLOADED: {folder_path}/{file_name}")
             pass
     else:
-        print('no files to download today')
+        log.debug('no files to download today')
     pass
 
 def download_nem_current_hist(base_fn_save=None, update_metadata=False, save_metadata=False):
