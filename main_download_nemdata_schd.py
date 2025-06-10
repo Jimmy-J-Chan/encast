@@ -6,7 +6,6 @@ from conf.config import *
 log = setup_logger(__name__) # setup logging
 
 def download_nemdata(root_path=None):
-    # root_path = r"C:\Users\Jimmy\Documents\NEM" if root_path is None else root_path
     root_path = r'U:\Research\Projects\sef\encast\NEM' if root_path is None else root_path
     download_nem_archive_update(root_path, update_metadata=True, save_metadata=True)
     download_nem_current_update(root_path, update_metadata=True, save_metadata=True)
@@ -15,6 +14,9 @@ def download_nemdata(root_path=None):
 
 
 if __name__ == '__main__':
-    root_path = r'U:\Research\Projects\sef\encast\NEM'
-    download_nemdata(root_path)
+    log.debug('build successful')
+    log.info('script successfully run')
+
+    #root_path = r'U:\Research\Projects\sef\encast\NEM' # rdss - qut
+    #download_nemdata(root_path)
     pass

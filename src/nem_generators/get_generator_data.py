@@ -1,5 +1,4 @@
 import pandas as pd
-
 from conf.config import *
 import requests
 
@@ -43,19 +42,19 @@ def get_generator_coords(fn_gendata=None, update=False, update_diff=False):
         # tmp = requests.get(query_str.format(api_key, "adelaide desalination plant"))
     pass
 
-
-
 def get_generator_data():
     # flags
     update_raw_generator_data = False
-    update_gendata_addresses = False
-    update_generator_coords = True
+    update_gendata_coords = False
+    populate_gendata_coords = True
 
     # file paths
-    fn_gendata = r'U:\Research\Projects\sef\encast\NEM\generators\generator_data.pkl' # qut
+    fn_gendata = r'U:\Research\Projects\sef\encast\NEM\generators\generator_data.pkl' # qut - rdss
     fn_gendata = r"U:\NEM\generators\generator_data.pkl" # pc
-    fn_gendata = r"C:\Users\Jimmy\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data.pkl"
-    fn_gendata_xl = r"C:\Users\Jimmy\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data.xlsx"
+    fn_gendata = r"C:\Users\Jimmy\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data.pkl" # onedrive - pc
+    fn_gendata_xl = r"C:\Users\Jimmy\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data_coordinates.xlsx" # onedrive excel - pc
+    fn_gendata = r"C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data.pkl" # onedrive - qut
+    fn_gendata_xl = r"C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data\NEM\generator_data_coordinates.xlsx" # onedrive excel - qut
 
     if update_raw_generator_data:
         # get raw generator data from AEMO
@@ -65,19 +64,37 @@ def get_generator_data():
         raw_file_path = r"U:\NEM\generators\NEM-Generation-Information-April-2025.xlsx"
         get_raw_generator_data(raw_file_path, fn_gendata)
 
-    if update_gendata_addresses:
+    if update_gendata_coords:
         # save to excel
         df = pd.read_pickle(fn_gendata)
         df['address_manual'] = None
         df.to_excel(fn_gendata_xl, index=False)
-        # manually fill in addresses of generators - copied straight from google maps
+        # manually fill in addresses/coordinates of generators - copied straight from google maps
 
-    if update_generator_coords:
-        # get coordinates for each generator
-        get_generator_coords(fn_gendata, update=True, update_diff=False)
+    if populate_gendata_coords:
+        # some postprocessing
+        df_coords = pd.read_excel(fn_gendata_xl)
+        dfmap = df_coords.set_index(['Region','Site Name','Owner'])[['coordinates_manual','notes']].dropna(subset=['coordinates_manual'])
+        dfmap = dfmap.loc[~dfmap.index.duplicated(keep='last')]
+        tmpdf = df_coords.set_index(['Region','Site Name','Owner'], drop=False)
+        tmpdf['coordinates'] = tmpdf.index.map(dfmap['coordinates_manual']).str.strip()
+        tmpdf['notes'] = tmpdf.index.map(dfmap['notes'])
+
+        # split into latitude, longitude
+        tmpdf['latitude'] = tmpdf['coordinates'].str.split(',', expand=True)[0].str.strip().astype(float).round(2)
+        tmpdf['longitude'] = tmpdf['coordinates'].str.split(',', expand=True)[1].str.strip().astype(float).round(2)
+
+        # save
+        tmpdf = tmpdf.reset_index(drop=True)
+        tmpdf.to_pickle(fn_gendata)
+
+
+        pass
+
 
 
     pass
+
 
 
 
