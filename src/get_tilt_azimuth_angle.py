@@ -3,7 +3,6 @@ from conf.config import *
 import requests
 from bs4 import BeautifulSoup
 import time
-import rasterio
 
 
 def _profile_solar_au_yearly_optimal(save_fpath=None, update=False):

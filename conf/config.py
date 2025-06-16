@@ -47,3 +47,11 @@ def setup_logger(name=__name__, log_file=None, level=logging.DEBUG):
 
     return logger
 
+def chunks(lst, n, enum=True):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        if enum:
+            yield i, lst[i:i + n]
+        else:
+            yield lst[i:i + n]
+

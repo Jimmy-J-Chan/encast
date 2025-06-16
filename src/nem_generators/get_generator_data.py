@@ -84,6 +84,9 @@ def get_generator_data():
         tmpdf['latitude'] = tmpdf['coordinates'].str.split(',', expand=True)[0].str.strip().astype(float).round(2)
         tmpdf['longitude'] = tmpdf['coordinates'].str.split(',', expand=True)[1].str.strip().astype(float).round(2)
 
+        # coords pair with 2 decimal places
+        tmpdf['coordinates'] = tmpdf['latitude'].astype(str) + ',' + tmpdf['longitude'].astype(str)
+
         # save
         tmpdf = tmpdf.reset_index(drop=True)
         tmpdf.to_pickle(fn_gendata)
