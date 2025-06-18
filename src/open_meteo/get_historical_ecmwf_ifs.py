@@ -42,7 +42,7 @@ def get_data_from_url(url=None, coords=None, var_name=None):
     if response.status_code==200:
         data = response.json()
         for ix, c in enumerate(coords):
-            cdata = data[ix]
+            cdata = data[ix] if len(coords)>1 else data
             df0 = pd.DataFrame(cdata['hourly']).set_index('time')
             df0.index = pd.to_datetime(df0.index)
             df0.columns = [c]
@@ -67,6 +67,12 @@ def get_historical_ecmwf_ifs():
                  'sunshine_duration','et0_fao_evapotranspiration','snow_depth']
     vars2drop = vars2drop + [c for c in wvars['Variable'] if c.startswith('soil')]
     wvars2collect = [c for c in wvars['Variable'] if c not in vars2drop]
+
+    # GTI: global_tilted_irradiance, ~ can be modelled using GHI, DHI and DNI
+    # GHI: shortwave_radiation, ~ GHI = DHI + DNI * cos(solar zenith angle)
+    # DHI: diffuse_radiation,
+    # DNI: direct_normal_irradiance
+    wvars2collect = ['shortwave_radiation', 'diffuse_radiation', 'direct_normal_irradiance'] #TODO: remove
 
     # params
     params = Struct()
@@ -93,7 +99,7 @@ def get_historical_ecmwf_ifs():
         # collect in batches
         tmpparams = deepcopy(params)
         tmpparams['hourly_vars'] = [var]
-        chk_size = 10
+        chk_size = 5
 
         # check diffs
         coords_diff = [c for c in coords if c not in var_data.columns]
@@ -107,13 +113,16 @@ def get_historical_ecmwf_ifs():
                 metadata['last_updated_BNE_datetime'] = today
 
                 # concat
-                var_data = cc(var_data, df, axis=1)
-                var_md_data = cc(var_md_data, metadata, axis=0)
+                if not df.empty:
+                    var_data = cc(var_data, df, axis=1)
+                    var_md_data = cc(var_md_data, metadata, axis=0)
 
-                # save
-                var_data.to_pickle(var_fpath)
-                var_md_data.to_pickle(var_md_fpath)
-                print(' - saved')
+                    # save
+                    var_data.to_pickle(var_fpath)
+                    var_md_data.to_pickle(var_md_fpath)
+                    print(' - saved')
+                else:
+                    print(' - failed')
 
     pass
 
@@ -190,5 +199,5 @@ def update_historical_ecmwf_ifs():
 
 if __name__ == '__main__':
     get_historical_ecmwf_ifs() # use this to get full historical for new coords and vars
-    update_historical_ecmwf_ifs() # use this to update diff dates
+    #update_historical_ecmwf_ifs() # use this to update diff dates
     pass
