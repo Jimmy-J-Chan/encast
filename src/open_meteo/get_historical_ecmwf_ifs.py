@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 from conf.config import *
 import requests
@@ -72,7 +74,9 @@ def get_historical_ecmwf_ifs():
     # GHI: shortwave_radiation, ~ GHI = DHI + DNI * cos(solar zenith angle)
     # DHI: diffuse_radiation,
     # DNI: direct_normal_irradiance
-    wvars2collect = ['shortwave_radiation', 'diffuse_radiation', 'direct_normal_irradiance'] #TODO: remove
+    wvars2collect = ['cloud_cover','cloud_cover_low','cloud_cover_mid','cloud_cover_high',
+                     'relative_humidity_2m','dew_point_2m','apparent_temperature','precipitation',
+                     'rain'] #TODO: remove
 
     # params
     params = Struct()
@@ -123,6 +127,7 @@ def get_historical_ecmwf_ifs():
                     print(' - saved')
                 else:
                     print(' - failed')
+                    time.sleep(10)
 
     pass
 
