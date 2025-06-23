@@ -127,7 +127,7 @@ def get_historical_ecmwf_ifs():
                     print(' - saved')
                 else:
                     print(' - failed')
-                    time.sleep(10)
+                    time.sleep(60) # 1min rate limit
 
     pass
 
