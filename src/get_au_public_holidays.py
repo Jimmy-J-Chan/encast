@@ -65,25 +65,46 @@ def _add_public_holidays(df=None):
     # 30mins ahead of AEST during daylights savings
     dr = pd.date_range(f'2019-12-01', f'{df.index.year.max()}-12-01', freq='YS-DEC') + pd.DateOffset(day=24)
     df3_qld = pd.DataFrame(index=dr, columns=df.columns)
-    df3_qld['QLD'] = 'Christmas Eve 6pm – 12am'
+    df3_qld['QLD'] = 'Christmas Eve AEST 6pm – 12am'
 
     dr = pd.date_range(f'2012-12-01', f'{df.index.year.max()}-12-01', freq='YS-DEC') + pd.DateOffset(day=24)
     df3_sa = pd.DataFrame(index=dr, columns=df.columns)
-    df3_sa['SA'] = 'Christmas Eve 6:30pm – 11:30pm' # 'Christmas Eve 7pm – 12am'
+    df3_sa['SA'] = 'Christmas Eve AEST 6:30pm – 11:30pm' # 'Christmas Eve 7pm – 12am'
 
     dr = pd.date_range(f'2012-12-01', f'{df.index.year.max()}-12-01', freq='YS-DEC') + pd.DateOffset(day=31)
     df3_sa2 = pd.DataFrame(index=dr, columns=df.columns)
-    df3_sa2['SA'] = "New Year's Eve 6:30pm – 11:30pm" # "New Year's Eve 7pm – 12am"
-
-
+    df3_sa2['SA'] = "New Year's Eve AEST 6:30pm – 11:30pm" # "New Year's Eve 7pm – 12am"
     new_hds = cc(new_hds, df3_qld, df3_sa, df3_sa2, axis=0)
 
+    ## group 4) Tas holidays
+    dr = df.loc[df['TAS']=='Easter Monday'].index + pd.DateOffset(days=1)
+    df4 = pd.DataFrame(index=dr, columns=df.columns)
+    df4['TAS'] = 'Easter Tuesday' #  - Public Service only
 
+    # Royal Hobart Regatta - 2nd Monday Feb - South parts of TAS
+    dr = pd.date_range(f'{df.index.year.min()}-02-01', f'{df.index.year.max()}-02-01', freq='YS-FEB') + pd.DateOffset(weekday=0) + pd.DateOffset(days=7)
+    df4_reg = pd.DataFrame(index=dr, columns=df.columns)
+    df4_reg['TAS'] = 'Royal Hobart Regatta'
+
+    # Recreation Day - 1st Monday Nov - All parts of the state which do not observe Royal Hobart Regatta.
+    dr = pd.date_range(f'{df.index.year.min()}-11-01', f'{df.index.year.max()}-11-01', freq='YS-NOV') + pd.DateOffset(weekday=0)
+    df4_rec = pd.DataFrame(index=dr, columns=df.columns)
+    df4_rec['TAS'] = 'Recreation Day'
+    new_hds = cc(new_hds, df4, df4_reg, df4_rec, axis=0)
 
 
     # reshape df by state - dropna and cc
+    new_hds_updated = pd.DataFrame()
+    tmpdf = cc(df, new_hds, axis=0)
+    for state in tmpdf.columns:
+        tmp = tmpdf[[state]]
+        tmp['dt'] = tmpdf.index
+        tmp = tmp.dropna().drop_duplicates(subset=[state, 'dt']).sort_index()
+        new_hds_updated = cc(new_hds_updated, tmp[[state]])
+        pass
 
-    return df
+
+    return new_hds_updated
 
 
 def get_au_public_holidays():
