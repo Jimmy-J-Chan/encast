@@ -144,6 +144,11 @@ def update_historical_ecmwf_ifs():
     vars2drop = vars2drop + [c for c in wvars['Variable'] if c.startswith('soil')]
     wvars2collect = [c for c in wvars['Variable'] if c not in vars2drop]
 
+    # only collect data we have hist data already collected
+    dfiles = os.listdir(r'C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data\open_meteo\historical\ecmwf_ifs')
+    dfiles = [c[:-len('.pkl')] for c in dfiles if not 'metadata' in c]
+    wvars2collect = [c for c in wvars2collect if c in dfiles]
+
     # params
     params = Struct()
     #params['coords'] = coords[:2]
@@ -156,6 +161,7 @@ def update_historical_ecmwf_ifs():
     params['timezone'] = 'GMT' #'Australia%2FBrisbane' #'GMT'
 
     today = pd.Timestamp.today()
+    today = pd.to_datetime('2025-05-31')
     varlen = len(wvars2collect)
     for ix, var in enumerate(wvars2collect):
         print(f' -> {ix}/{varlen} - Downloading - {var}')
@@ -169,7 +175,7 @@ def update_historical_ecmwf_ifs():
         # collect in batches
         tmpparams = deepcopy(params)
         tmpparams['hourly_vars'] = [var]
-        chk_size = 50
+        chk_size = 25
 
         # update diff date
         lvi = min([var_data[c].last_valid_index() for c in var_data.columns])
@@ -177,25 +183,39 @@ def update_historical_ecmwf_ifs():
         tmpparams['end_date'] = f"{today:%Y-%m-%d}"
 
         # extend df index
-        new_idx = var_data.index.union(pd.date_range(lvi, today.today(), freq='h'))
-        var_data = var_data.reindex(new_idx)
+        dr = pd.date_range(lvi, today, freq='h')
+        if var_data.dropna(axis=0, how='any').index.max()==dr.max():
+            print(' -> Data already up to date')
+            continue
+        else:
+            new_idx = var_data.index.union(dr)
+            var_data = var_data.reindex(new_idx)
 
         chklen = int(len(coords)/chk_size)
         for chkix, chk in chunks(coords, chk_size, enum=True):
-            print(f' ->> chunk - {chkix}/{chklen}', end='')
-            tmpparams['coords'] = chk
-            url = _build_query_url(tmpparams)
-            df, metadata = get_data_from_url(url, chk, var)
-            metadata['last_updated_BNE_datetime'] = today
+            # skip if chunk already collected
+            any_missed = var_data.loc[tmpparams['start_date']:tmpparams['end_date'], chk].isnull().any().any()
+            if any_missed:
+                print(f' ->> chunk - {chkix}/{chklen}', end='')
+                tmpparams['coords'] = chk
+                url = _build_query_url(tmpparams)
+                df, metadata = get_data_from_url(url, chk, var)
+                metadata['last_updated_BNE_datetime'] = today
 
-            # update df
-            var_data.update(df, overwrite=False) # only update missing values
-            var_md_data.update(metadata, overwrite=True) # overwrite old metadata
+                if not df.empty:
+                    # update df
+                    var_data.update(df, overwrite=False) # only update missing values
+                    var_md_data.update(metadata, overwrite=True) # overwrite old metadata
 
-            # save
-            var_data.to_pickle(var_fpath)
-            var_md_data.to_pickle(var_md_fpath)
-            print(' - saved')
+                    # save
+                    var_data.to_pickle(var_fpath)
+                    var_md_data.to_pickle(var_md_fpath)
+                    print(' - saved')
+                else:
+                    print(' - failed')
+                    time.sleep(60)  # 1min rate limit
+            else:
+                print(f' ->> chunk - {chkix}/{chklen} - already collected - skip')
 
     pass
 
@@ -203,6 +223,6 @@ def update_historical_ecmwf_ifs():
 
 
 if __name__ == '__main__':
-    get_historical_ecmwf_ifs() # use this to get full historical for new coords and vars
-    #update_historical_ecmwf_ifs() # use this to update diff dates
+    #get_historical_ecmwf_ifs() # use this to get full historical for new coords and vars
+    update_historical_ecmwf_ifs() # use this to update diff dates
     pass

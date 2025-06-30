@@ -63,6 +63,18 @@ def _get_diff_file_names(file_names, data_fpath, regions=None, file_type=None):
 
 ########################################################################################################################
 
+def parse_dispatchIS_reports_deeparchive():
+    """
+    Data stored in cold storage
+     - https://visualisations.aemo.com.au/aemo/nemweb/index.html#mms-data-model
+     - 2009 -> 2025
+     - monthly
+    """
+
+
+
+    pass
+
 def parse_dispatchIS_reports_archive():
     """
     populates data from archive
@@ -393,7 +405,7 @@ def parse_dispatch_scada_archive():
 
     file_names_diff = _get_diff_file_names(all_file_names_lst, save_fpath,  file_type='dispatch_scada')
     all_file_names_diff = all_file_names.loc[all_file_names['value'].isin(file_names_diff)].reset_index(drop=True)
-    all_file_names_diff = all_file_names_diff.iloc[:3].reset_index(drop=True)  # in chunks of 25k
+    all_file_names_diff = all_file_names_diff.iloc[:].reset_index(drop=True)  # in chunks of 25k
     lenFN = len(all_file_names_diff)
     if lenFN > 0:
         for ix, row in all_file_names_diff.iterrows():
@@ -451,5 +463,5 @@ def parse_dispatch_scada_archive():
 
 if __name__ == '__main__':
     parse_dispatch_scada_archive()
-    parse_dispatchIS_reports_archive()
+    #parse_dispatchIS_reports_archive()
     pass
