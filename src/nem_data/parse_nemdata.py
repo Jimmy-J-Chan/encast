@@ -154,12 +154,12 @@ def parse_dispatchIS_reports_deeparchive():
     if update_demand:
         # collect and save by month
         print(f' -> Updating demand')
-        lenDR = len(dr)
         dfdemands = {k: pd.read_pickle(demand_fpath.format(k)) for k in regions}
 
         # get diff dr
         dr_diff = dr5m.difference(dfdemands[regions[0]].index)
         dr_diff = pd.date_range(dr_diff.min(), dr_diff.max(), freq='MS').sort_values(ascending=False) # collect in reverse
+        lenDR = len(dr_diff)
         for ix, d in enumerate(dr_diff):
             print(f" ->> demand - {ix}/{lenDR} - {d}")
 
@@ -178,6 +178,9 @@ def parse_dispatchIS_reports_deeparchive():
             xcols = ['8', 'RAISE1SECLOCALDISPATCH', 'LOWER1SECLOCALDISPATCH', 'RAISE1SECACTUALAVAILABILITY',
                      'LOWER1SECACTUALAVAILABILITY', 'SS_SOLAR_AVAILABILITY', 'SS_WIND_AVAILABILITY',
                      'BDU_ENERGY_STORAGE', 'BDU_MIN_AVAIL', 'BDU_MAX_AVAIL', 'BDU_CLEAREDMW_GEN', 'BDU_CLEAREDMW_LOAD','7']
+            xcols = xcols + ['WDR_INITIALMW', 'WDR_AVAILABLE', 'WDR_DISPATCHED']
+            xcols = xcols + ['SS_SOLAR_UIGF', 'SS_WIND_UIGF', 'SS_SOLAR_CLEAREDMW', 'SS_WIND_CLEAREDMW',
+                             'SS_SOLAR_COMPLIANCEMW', 'SS_WIND_COMPLIANCEMW']
             diffcols = [c for c in dfdemands[regions[0]] if c not in df.columns.to_list()+xcols]
             if len(diffcols)>0:
                 print(f" -> missing columns: {diffcols}")
@@ -310,7 +313,7 @@ def parse_dispatchIS_reports_archive():
         dfdemand_hold = []
 
         file_names_diff = _get_diff_file_names(all_file_names_lst, demand_fpath, regions, 'dispatchIS_reports')
-        all_file_names_diff = all_file_names.loc[all_file_names['value'].isin(file_names_diff)].reset_index(drop=True)[:1000]
+        all_file_names_diff = all_file_names.loc[all_file_names['value'].isin(file_names_diff)].reset_index(drop=True)[:]
         lenFN = len(all_file_names_diff)
         if lenFN>0:
             for ix, row in all_file_names_diff.iterrows():
