@@ -71,7 +71,147 @@ def parse_dispatchIS_reports_deeparchive():
      - monthly
     """
 
+    # flags
+    update_price = False
+    update_demand = True
 
+    # fpaths
+    base_urlp = r'https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM/{}/MMSDM_{}/MMSDM_Historical_Data_SQLLoader/DATA/PUBLIC_DVD_DISPATCHPRICE_{}0000.zip'
+    base_urld = r'https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM/{}/MMSDM_{}/MMSDM_Historical_Data_SQLLoader/DATA/PUBLIC_DVD_DISPATCHREGIONSUM_{}0000.zip'
+    root_save_fpath = r"C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data"
+    price_fpath = root_save_fpath + "/NEM/historical/price_{}.pkl"
+    demand_fpath = root_save_fpath + "/NEM/historical/demand_{}.pkl"
+
+    # params
+    regions = ['NSW1','QLD1','SA1','TAS1','VIC1']
+    start_date = '2014-12-01' #'2009-07-01'
+    end_date = '2024-02-01'
+    dr = pd.date_range(start_date, end_date, freq='MS')
+    dr5m = pd.date_range(start_date, end_date, freq='5min')
+
+    if update_price:
+        # collect and save by month
+        print(f' -> Updating prices')
+        lenDR = len(dr)
+        dfprices = {k: pd.read_pickle(price_fpath.format(k)) for k in regions}
+
+        # get diff dr
+        dr_diff = dr5m.difference(dfprices[regions[0]].index)
+        dr_diff = pd.date_range(dr_diff.min(), dr_diff.max(), freq='MS').sort_values(ascending=False) # collect in reverse
+        for ix, d in enumerate(dr_diff):
+            print(f" ->> price - {ix}/{lenDR} - {d}")
+
+            # get data
+            data_url = base_urlp.format(d.year, f'{d:%Y_%m}', f'{d:%Y%m%d}')
+            df = pd.read_csv(data_url, skiprows=1, skipfooter=1, engine='python')
+
+            # parse
+            df['SETTLEMENTDATE'] = pd.to_datetime(df['SETTLEMENTDATE'])
+            df['LASTCHANGED'] = pd.to_datetime(df['LASTCHANGED'])
+            cols2f = ['LASTCHANGED', 'SETTLEMENTDATE']
+            df = df[cols2f + [col for col in df.columns if col not in cols2f]]
+            df = df.set_index('SETTLEMENTDATE', drop=False)
+
+            # check for diff cols
+            xcols = ['RAISE1SECRRP', 'RAISE1SECROP', 'RAISE1SECAPCFLAG', 'LOWER1SECRRP', 'LOWER1SECROP',
+                     'LOWER1SECAPCFLAG', 'PRE_AP_RAISE1_PRICE', 'PRE_AP_LOWER1_PRICE', 'CUMUL_PRE_AP_RAISE1_PRICE',
+                     'CUMUL_PRE_AP_LOWER1_PRICE', 'OCD_STATUS', 'MII_STATUS']
+            diffcols = [c for c in dfprices[regions[0]] if c not in df.columns.to_list()+xcols]
+            if len(diffcols)>0:
+                print(f" -> missing columns: {diffcols}")
+
+            for region in regions:
+                print(f' -> {region} - concat and saving data ', end='')
+                mask = df['REGIONID'] == region
+                df_region = df.loc[mask]
+
+                # drop overlapping
+                mask = df_region.index.isin(dfprices[region].index)
+                df_region = df_region.loc[~mask]
+
+                if not df_region.empty:
+                    dfprices[region] = cc(dfprices[region], df_region, axis=0).sort_index()
+                    # drop some cols
+                    cols2drop = ['5','4','1']
+                    dfprices[region] = dfprices[region][[c for c in dfprices[region].columns if c not in cols2drop]]
+                    dfprices[region].to_pickle(price_fpath.format(region))  # save
+                    print(' - done')
+                else:
+                    print(' - no data to concat...skip')
+
+            pass
+
+        # check missing 5min interval for each region
+        for region in regions:
+            start_date = dfprices[region].index.min()
+            end_date = dfprices[region].index.max()
+            dr = pd.date_range(start_date, end_date, freq='5min')
+
+            miss_5m = dr.difference(dfprices[region].index)
+            if len(miss_5m)>0:
+                print(f" -> {region} - sdate: {start_date} - edate: {end_date} -  missing 5m: {[c for c in miss_5m]}")
+
+    if update_demand:
+        # collect and save by month
+        print(f' -> Updating demand')
+        lenDR = len(dr)
+        dfdemands = {k: pd.read_pickle(demand_fpath.format(k)) for k in regions}
+
+        # get diff dr
+        dr_diff = dr5m.difference(dfdemands[regions[0]].index)
+        dr_diff = pd.date_range(dr_diff.min(), dr_diff.max(), freq='MS').sort_values(ascending=False) # collect in reverse
+        for ix, d in enumerate(dr_diff):
+            print(f" ->> demand - {ix}/{lenDR} - {d}")
+
+            # get data
+            data_url = base_urld.format(d.year, f'{d:%Y_%m}', f'{d:%Y%m%d}')
+            df = pd.read_csv(data_url, skiprows=1, skipfooter=1, engine='python')
+
+            # parse
+            df['SETTLEMENTDATE'] = pd.to_datetime(df['SETTLEMENTDATE'])
+            df['LASTCHANGED'] = pd.to_datetime(df['LASTCHANGED'])
+            cols2f = ['LASTCHANGED', 'SETTLEMENTDATE']
+            df = df[cols2f + [col for col in df.columns if col not in cols2f]]
+            df = df.set_index('SETTLEMENTDATE', drop=False)
+
+            # check for diff cols
+            xcols = ['8', 'RAISE1SECLOCALDISPATCH', 'LOWER1SECLOCALDISPATCH', 'RAISE1SECACTUALAVAILABILITY',
+                     'LOWER1SECACTUALAVAILABILITY', 'SS_SOLAR_AVAILABILITY', 'SS_WIND_AVAILABILITY',
+                     'BDU_ENERGY_STORAGE', 'BDU_MIN_AVAIL', 'BDU_MAX_AVAIL', 'BDU_CLEAREDMW_GEN', 'BDU_CLEAREDMW_LOAD','7']
+            diffcols = [c for c in dfdemands[regions[0]] if c not in df.columns.to_list()+xcols]
+            if len(diffcols)>0:
+                print(f" -> missing columns: {diffcols}")
+
+            for region in regions:
+                print(f' -> {region} - concat and saving data ', end='')
+                mask = df['REGIONID'] == region
+                df_region = df.loc[mask]
+
+                # drop overlapping
+                mask = df_region.index.isin(dfdemands[region].index)
+                df_region = df_region.loc[~mask]
+
+                if not df_region.empty:
+                    dfdemands[region] = cc(dfdemands[region], df_region, axis=0).sort_index()
+                    # drop some cols
+                    cols2drop = ['5','4','1','7','8']
+                    dfdemands[region] = dfdemands[region][[c for c in dfdemands[region].columns if c not in cols2drop]]
+                    dfdemands[region].to_pickle(demand_fpath.format(region))  # save
+                    print(' - done')
+                else:
+                    print(' - no data to concat...skip')
+
+            pass
+
+        # check missing 5min interval for each region
+        for region in regions:
+            start_date = dfdemands[region].index.min()
+            end_date = dfdemands[region].index.max()
+            dr = pd.date_range(start_date, end_date, freq='5min')
+
+            miss_5m = dr.difference(dfdemands[region].index)
+            if len(miss_5m)>0:
+                print(f" -> {region} - sdate: {start_date} - edate: {end_date} -  missing 5m: {[c for c in miss_5m]}")
 
     pass
 
@@ -79,7 +219,7 @@ def parse_dispatchIS_reports_archive():
     """
     populates data from archive
     """
-    update_price = True
+    update_price = False
     update_demand = True
 
     regions = ['NSW1','QLD1','SA1','TAS1','VIC1']
@@ -170,7 +310,7 @@ def parse_dispatchIS_reports_archive():
         dfdemand_hold = []
 
         file_names_diff = _get_diff_file_names(all_file_names_lst, demand_fpath, regions, 'dispatchIS_reports')
-        all_file_names_diff = all_file_names.loc[all_file_names['value'].isin(file_names_diff)].reset_index(drop=True)
+        all_file_names_diff = all_file_names.loc[all_file_names['value'].isin(file_names_diff)].reset_index(drop=True)[:1000]
         lenFN = len(all_file_names_diff)
         if lenFN>0:
             for ix, row in all_file_names_diff.iterrows():
@@ -219,7 +359,7 @@ def parse_dispatchIS_reports_archive():
             print(' -> no files to update')
     pass
 
-def parse_dispatchIS_reports_current():
+def parse_dispatchIS_reports_current_DONT_USE():
     """
     extend version of aggregated data collected here
     - https://aemo.com.au/energy-systems/electricity/national-electricity-market-nem/data-nem/aggregated-data
@@ -251,8 +391,8 @@ def parse_dispatchIS_reports_current():
 
     """
 
-    update_price = False
-    update_demand = False
+    update_price = True
+    update_demand = True
 
     regions = ['NSW1','QLD1','SA1','TAS1','VIC1']
 
@@ -462,6 +602,8 @@ def parse_dispatch_scada_archive():
 ########################################################################################################################
 
 if __name__ == '__main__':
-    parse_dispatch_scada_archive()
+    # parse_dispatch_scada_archive()
+    # parse_dispatchIS_reports_current() ### Don't use, use archive instead
     #parse_dispatchIS_reports_archive()
+    parse_dispatchIS_reports_deeparchive()
     pass
