@@ -92,12 +92,12 @@ def parse_dispatchIS_reports_deeparchive():
     if update_price:
         # collect and save by month
         print(f' -> Updating prices')
-        lenDR = len(dr)
         dfprices = {k: pd.read_pickle(price_fpath.format(k)) for k in regions}
 
         # get diff dr
         dr_diff = dr5m.difference(dfprices[regions[0]].index)
         dr_diff = pd.date_range(dr_diff.min(), dr_diff.max(), freq='MS').sort_values(ascending=False) # collect in reverse
+        lenDR = len(dr_diff)
         for ix, d in enumerate(dr_diff):
             print(f" ->> price - {ix}/{lenDR} - {d}")
 
@@ -509,6 +509,86 @@ def parse_dispatchIS_reports_current_DONT_USE():
 
 ########################################################################################################################
 
+def parse_dispatch_scada_deeparchive():
+    # fpaths
+    data_url = r'https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM/2024/MMSDM_2024_03/MMSDM_Historical_Data_SQLLoader/DATA/PUBLIC_DVD_DISPATCH_UNIT_SCADA_202403010000.zip'
+    base_url = r'https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM/{}/MMSDM_{}/MMSDM_Historical_Data_SQLLoader/DATA/PUBLIC_DVD_DISPATCH_UNIT_SCADA_{}0000.zip'
+    root_save_fpath = r"C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data"
+    scada_fpath = root_save_fpath + "/NEM/historical/dispatch_scada.pkl"
+
+    # params
+    start_date = '2014-12-01'
+    end_date = '2024-02-01'
+    dr = pd.date_range(start_date, end_date, freq='MS')
+    dr5m = pd.date_range(start_date, end_date, freq='5min')
+
+    # data files
+    dfscada = pd.read_pickle(scada_fpath)
+
+    # collect data
+    # get diff dr
+    dr_diff = dr5m.difference(dfscada.index)
+    dr_diff = pd.date_range(dr_diff.min(), dr_diff.max(), freq='MS').sort_values(ascending=False)  # collect in reverse
+    dr_diff = dr_diff[:]
+    lenDR = len(dr_diff)
+    hold_scada = []
+    for ix, d in enumerate(dr_diff):
+        print(f" ->> scada - {ix}/{lenDR} - {d}")
+
+        # get data
+        data_url = base_url.format(d.year, f'{d:%Y_%m}', f'{d:%Y%m%d}')
+        tmpdf = pd.read_csv(data_url, skiprows=1, skipfooter=1, engine='python')
+        tmpdf['SETTLEMENTDATE'] = pd.to_datetime(tmpdf['SETTLEMENTDATE'])
+
+        # parse
+        cols2p = ['LASTCHANGED', 'SETTLEMENTDATE', 'DUID', 'SCADAVALUE']
+        if 'LASTCHANGED' not in tmpdf.columns:
+            tmpdf['LASTCHANGED'] = tmpdf['SETTLEMENTDATE']
+        tmpdfmap = tmpdf[cols2p].set_index(['SETTLEMENTDATE', 'DUID'], drop=False)
+        all_uuids = tmpdf['DUID'].drop_duplicates().to_list()
+        all_5mins = tmpdf['SETTLEMENTDATE'].drop_duplicates().sort_values().to_list()
+        tmpdfpivot = pd.DataFrame(columns=['LASTCHANGED', 'SETTLEMENTDATE','SCADA_units']+all_uuids, index=all_5mins)
+        tmpdfpivot['SCADA_units'] = 'MW'
+
+        for d in ['LASTCHANGED', 'SETTLEMENTDATE']:
+            tmp_uuid = all_uuids[0]
+            tmpdfpivot[d] = [(d,tmp_uuid) for d in tmpdfpivot.index]
+            tmpdfpivot[d] = tmpdfpivot[d].map(tmpdfmap[d])
+
+        for uuid in all_uuids:
+            tmpdfpivot[uuid] = [(d,uuid) for d in tmpdfpivot.index]
+            tmpdfpivot[uuid] = tmpdfpivot[uuid].map(tmpdfmap['SCADAVALUE'])
+
+        # last changed
+        mask = tmpdfpivot['LASTCHANGED']==tmpdfpivot['SETTLEMENTDATE']
+        if mask.any():
+            tmpdfpivot.loc[mask, 'LASTCHANGED'] = tmpdfpivot.loc[mask, 'SETTLEMENTDATE'] - pd.DateOffset(minutes=5)
+
+        hold_scada.append(tmpdfpivot)
+
+    # save
+    print(f' -> concat and saving data ', end='')
+    scada_agg = pd.concat(hold_scada, axis=0).sort_index()
+    # drop overlapping
+    mask = scada_agg.index.isin(dfscada.index)
+    scada_agg = scada_agg.loc[~mask]
+    if not tmpdfpivot.empty:
+        dfscada = cc(dfscada, scada_agg, axis=0).sort_index()
+        dfscada.to_pickle(scada_fpath)  # save
+        print(' - done')
+    else:
+        print(' - no data to concat...skip')
+
+    # check missing 5min intervals - get uuid from old gen files
+    start_date = dfscada.index.min()
+    end_date = dfscada.index.max()
+    dr = pd.date_range(start_date, end_date, freq='5min')
+
+    miss_5m = dr.difference(dfscada.index)
+    if len(miss_5m) > 0:
+        print(f" -> sdate: {start_date} - edate: {end_date} -  missing 5m: {[c for c in miss_5m]}")
+    pass
+
 def parse_dispatch_scada_archive():
     """
     populates data from archive
@@ -605,8 +685,9 @@ def parse_dispatch_scada_archive():
 ########################################################################################################################
 
 if __name__ == '__main__':
+    parse_dispatch_scada_deeparchive()
     # parse_dispatch_scada_archive()
     # parse_dispatchIS_reports_current() ### Don't use, use archive instead
-    #parse_dispatchIS_reports_archive()
-    parse_dispatchIS_reports_deeparchive()
+    # parse_dispatchIS_reports_archive()
+    # parse_dispatchIS_reports_deeparchive()
     pass

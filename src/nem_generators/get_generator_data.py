@@ -98,9 +98,34 @@ def get_generator_data():
 
     pass
 
+def get_generator_data_hist():
+    base_fpath = r'C:\Users\n8871191\OneDrive - Queensland University of Technology\Documents\encast\data'
+    gendata_fpaths = base_fpath + r'\NEM\generators\gen_info_hist'
+    file_names = os.listdir(gendata_fpaths)
 
+    hold = []
+    for f in file_names:
+        print(f" -> {f}")
+        tmpfpath = gendata_fpaths + f"/{f}"
+
+        if f in ['NEM Generation Information May 2022.xlsx']:
+            gens = pd.read_excel(tmpfpath, sheet_name='ExistingGen&NewDevs', skiprows=1)
+        else:
+            gens = pd.read_excel(tmpfpath, sheet_name='ExistingGeneration&NewDevs', skiprows=1)
+
+        gens = gens.dropna(subset=['Asset Type','Site Name','Fuel Type'])
+        gens = gens.reset_index(drop=True)
+        hold.append(gens)
+        pass
+
+    gendatah = pd.concat(hold, axis=0)
+    gendatah = gendatah.sort_values(by=['DUID','SurveyEffectiveDate'], ascending=False)
+    save_fpath = base_fpath + f'/NEM/generators/generator_data_hist.pkl'
+    gendatah.to_pickle(save_fpath)
+    pass
 
 
 if __name__ == '__main__':
-    get_generator_data()
+    # get_generator_data()
+    get_generator_data_hist()
     pass
